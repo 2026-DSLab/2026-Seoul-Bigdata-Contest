@@ -27,4 +27,7 @@
 
 ## 📎 참고
 
+일정관리 구글 시트
+https://docs.google.com/spreadsheets/d/1WBbG8dI55mjiBtXcC28PO7cvNSSU2OfzdI1qVDcl12I/edit?usp=sharing
+
 ## 본 레포지토리는 대회 진행에 따라 지속적으로 업데이트됩니다.
