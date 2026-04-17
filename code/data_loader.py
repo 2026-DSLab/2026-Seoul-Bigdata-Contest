@@ -32,7 +32,7 @@ DATA_DIR = os.getenv(
 _STORE_CSV   = os.path.join(DATA_DIR, "상권분석_점포_행정동_전처리.csv")
 _SALES_CSV   = os.path.join(DATA_DIR, "상권분석_추정매출_행정동_20254분기_v2.csv")
 _PEOPLE_CSV  = os.path.join(DATA_DIR, "상권분석_길단위인구_행정동_20254분기.csv")
-_SUBWAY_CSV  = os.path.join(DATA_DIR, "지하철역_위치정보_전처리.csv")
+_SUBWAY_CSV  = os.path.join(DATA_DIR, "지하철역_위치정보.csv")
 
 # 업종 카테고리 매핑 (실제 CSV 카테고리명 기준)
 # CSV 카테고리: 외식/F&B, 식품/식재료, 생활서비스, 생활/홈인테리어,
@@ -144,7 +144,7 @@ def _get_nearest_subway(lat: float, lng: float, gu: str) -> dict:
     )
     nearest = df_gu.loc[df_gu["거리"].idxmin()]
     return {
-        "역명": nearest["지하철역명"],
+        "역명": nearest["역명"],
         "거리_m": int(round(nearest["거리"])),
     }
 
@@ -174,9 +174,9 @@ def _get_store_info(gu: str, dong: str, category: str) -> dict:
 
     dong_franchise  = int(df_dong["프랜차이즈_점포_수"].sum()) if "프랜차이즈_점포_수" in df_dong.columns else 0
 
-    # 동 개업률 / 폐업률 (평균) — 컬럼명: 개업_율 / 폐업_률
-    dong_open_rate  = round(float(df_dong["개업_율"].mean()),  1) if "개업_율"  in df_dong.columns and not df_dong.empty else 0.0
-    dong_close_rate = round(float(df_dong["폐업_률"].mean()),  1) if "폐업_률"  in df_dong.columns and not df_dong.empty else 0.0
+    # 동 개업률 / 폐업률 (평균) — 컬럼명: 개업_율 / 폐업_률 -> 소수점이므로 * 100
+    dong_open_rate  = round(float(df_dong["개업_율"].mean()) * 100,  1) if "개업_율"  in df_dong.columns and not df_dong.empty else 0.0
+    dong_close_rate = round(float(df_dong["폐업_률"].mean()) * 100,  1) if "폐업_률"  in df_dong.columns and not df_dong.empty else 0.0
 
     # 카테고리 필터
     cat_mapped = CATEGORY_MAP.get(category, category)
@@ -184,8 +184,8 @@ def _get_store_info(gu: str, dong: str, category: str) -> dict:
 
     cat_total      = int(df_cat["점포_수"].sum())             if "점포_수"         in df_cat.columns else 0
     cat_franchise  = int(df_cat["프랜차이즈_점포_수"].sum())  if "프랜차이즈_점포_수" in df_cat.columns else 0
-    cat_open_rate  = round(float(df_cat["개업_율"].mean()), 1) if "개업_율"  in df_cat.columns and not df_cat.empty else 0.0
-    cat_close_rate = round(float(df_cat["폐업_률"].mean()), 1) if "폐업_률"  in df_cat.columns and not df_cat.empty else 0.0
+    cat_open_rate  = round(float(df_cat["개업_율"].mean()) * 100, 1) if "개업_율"  in df_cat.columns and not df_cat.empty else 0.0
+    cat_close_rate = round(float(df_cat["폐업_률"].mean()) * 100, 1) if "폐업_률"  in df_cat.columns and not df_cat.empty else 0.0
 
     # 유사업종 반경 점포 수 (유사_업종_점포_수 컬럼 존재 시 합산, 없으면 카테고리 수)
     if "유사_업종_점포_수" in df_cat.columns and not df_cat.empty:
@@ -441,12 +441,12 @@ def load_data(user_input: dict) -> dict:
     Returns:
         input_example.json 스키마 + 업종 매출 순위 포함 dict
     """
-    store_name = user_input["상호명"]
-    gu         = user_input["구"]
-    dong       = user_input["동"]
-    category   = user_input["업종_카테고리"]
-    age        = user_input["고객_연령층"]
-    gender     = user_input["성별"]
+    store_name = user_input.get("상호명", "알수없음")
+    gu         = user_input.get("구", "-")
+    dong       = user_input.get("동", "-")
+    category   = user_input.get("업종_카테고리", "-")
+    age        = user_input.get("주고객_연령층", user_input.get("고객_연령층", "30대"))
+    gender     = user_input.get("주고객_성별", user_input.get("성별", "여성"))
 
     print(f"\n[DataLoader] 데이터 로딩 시작: {store_name} ({gu} {dong})")
 
