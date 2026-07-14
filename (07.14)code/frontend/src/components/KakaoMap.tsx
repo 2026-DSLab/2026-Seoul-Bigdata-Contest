@@ -20,11 +20,17 @@ export interface MapPin {
   color: string;
 }
 
+export interface LegendItem {
+  label: string;
+  color: string;
+}
+
 interface KakaoMapProps {
   center: { lat: number; lng: number };
   polygons?: MapPolygon[];
   pins?: MapPin[];
   height?: number;
+  legendPosition?: "top-left" | "top-right";
 }
 
 let sdkLoadPromise: Promise<void> | null = null;
@@ -48,7 +54,13 @@ function loadKakaoSdk(): Promise<void> {
   return sdkLoadPromise;
 }
 
-export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: KakaoMapProps) {
+export function KakaoMap({
+  center,
+  polygons = [],
+  pins = [],
+  height = 260,
+  legendPosition = "top-right",
+}: KakaoMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
@@ -80,16 +92,6 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
             fillColor: poly.color,
             fillOpacity: 0.18,
           });
-
-          if (poly.label && poly.path.length > 0) {
-            const centerLat = poly.path.reduce((s, [lat]) => s + lat, 0) / poly.path.length;
-            const centerLng = poly.path.reduce((s, [, lng]) => s + lng, 0) / poly.path.length;
-            const labelOverlay = new kakao.maps.CustomOverlay({
-              position: new kakao.maps.LatLng(centerLat, centerLng),
-              content: `<div style="background:${poly.color};color:#fff;font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid #fff">${poly.label}</div>`,
-            });
-            labelOverlay.setMap(map);
-          }
         });
 
         // 가게 이름은 항상 띄우지 않고, 작은 색상 점만 표시 + 마우스 오버 시 이름 툴팁(title)
@@ -118,10 +120,22 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
     };
   }, [center.lat, center.lng, polygons, pins]);
 
+  const legendItems = polygons.filter((p) => p.label);
+
   return (
     <div className="kakaomap-wrap" style={{ height }}>
       <div ref={containerRef} className="kakaomap-container" />
       <div ref={errorRef} className="kakaomap-error" />
+      {legendItems.length > 0 && (
+        <div className={`kakaomap-legend kakaomap-legend-${legendPosition}`}>
+          {legendItems.map((item, i) => (
+            <div key={i} className="kakaomap-legend-item">
+              <span className="kakaomap-legend-dot" style={{ background: item.color }} />
+              <span className="kakaomap-legend-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

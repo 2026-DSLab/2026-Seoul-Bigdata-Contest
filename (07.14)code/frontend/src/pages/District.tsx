@@ -3,12 +3,18 @@ import { useParams } from "react-router-dom";
 import { Store, Footprints, Tag } from "lucide-react";
 import { Card } from "../components/Card";
 import { KakaoMap } from "../components/KakaoMap";
+import { LoadingState } from "../components/LoadingState";
 import { api } from "../api/client";
 import type { DistrictResponse } from "../api/types";
 import "./District.css";
 
 const OURS_COLOR = "#6D5BD0";
 const OTHER_COLORS = ["#22C55E", "#F97316", "#0EA5E9", "#EC4899", "#EAB308"];
+
+const DISTRICT_STEPS = [
+  "우리 상권 데이터를 불러오는 중이에요",
+  "주변 상권 지도를 그리는 중이에요",
+];
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6_371_000;
@@ -67,7 +73,7 @@ export function District() {
     : 0;
 
   if (error) return <p className="district-error">{error}</p>;
-  if (!district) return <p className="district-loading">불러오는 중...</p>;
+  if (!district) return <LoadingState steps={DISTRICT_STEPS} />;
 
   let otherColorIdx = 0;
   const polygons = clusters.map((c) => {

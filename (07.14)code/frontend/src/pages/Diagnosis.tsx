@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
 import { Card } from "../components/Card";
 import { ChipSelect } from "../components/ChipSelect";
 import { RangeSlider } from "../components/RangeSlider";
+import { TextField } from "../components/TextField";
+import { LoadingState } from "../components/LoadingState";
 import { api } from "../api/client";
 import { useAppState } from "../state/AppState";
 import "./Diagnosis.css";
@@ -10,6 +13,13 @@ import "./Diagnosis.css";
 const CATEGORY_OPTIONS = [
   "외식/F&B", "식품/식재료", "생활서비스", "생활/홈인테리어", "의료/건강", "교육",
   "오락/여가", "숙박/부동산", "전문서비스", "전자/디지털", "자동차/이동수단", "패션/뷰티",
+];
+
+const ANALYZE_STEPS = [
+  "가게 정보를 확인하고 있어요",
+  "서울시 공공데이터를 조회하고 있어요",
+  "AI가 상권을 분석하고 있어요",
+  "우리 가게 MBTI를 계산하는 중이에요",
 ];
 
 function moodDescription(activity: number, brightness: number, style: number): string {
@@ -49,7 +59,25 @@ export function Diagnosis() {
   // 함께 성장하기
   const [브랜딩_의향, set브랜딩_의향] = useState<string[]>(["적극 관심"]);
 
+  const validate = (): string | null => {
+    const missing: string[] = [];
+    if (!상호명.trim()) missing.push("상호명");
+    if (!구.trim()) missing.push("구");
+    if (!동.trim()) missing.push("동");
+    if (!시그니쳐_상품.trim()) missing.push("시그니처 상품");
+    if (missing.length > 0) {
+      return `${missing.join(", ")}을(를) 입력해주세요.`;
+    }
+    return null;
+  };
+
   const handleSubmit = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -78,6 +106,15 @@ export function Diagnosis() {
     }
   };
 
+  if (submitting) {
+    return (
+      <div className="diagnosis">
+        <h2 className="diagnosis-title">우리 가게 MBTI 진단</h2>
+        <LoadingState steps={ANALYZE_STEPS} />
+      </div>
+    );
+  }
+
   return (
     <div className="diagnosis">
       <h2 className="diagnosis-title">우리 가게 MBTI 진단</h2>
@@ -85,13 +122,13 @@ export function Diagnosis() {
       <Card className="diagnosis-section">
         <h4>기본 정보 <span>우리 가게를 알려주세요</span></h4>
 
-        <label>상호명</label>
-        <input value={상호명} onChange={(e) => set상호명(e.target.value)} placeholder="가게 이름을 입력하세요" />
+        <label>상호명 <em>*</em></label>
+        <TextField value={상호명} onChange={(e) => set상호명(e.target.value)} placeholder="가게 이름을 입력하세요" />
 
-        <label>위치</label>
+        <label>위치 <em>*</em></label>
         <div className="diagnosis-row">
-          <input value={구} onChange={(e) => set구(e.target.value)} placeholder="구 (예: 마포구)" />
-          <input value={동} onChange={(e) => set동(e.target.value)} placeholder="동 (예: 서교동)" />
+          <TextField value={구} onChange={(e) => set구(e.target.value)} placeholder="구 (예: 마포구)" />
+          <TextField value={동} onChange={(e) => set동(e.target.value)} placeholder="동 (예: 서교동)" />
         </div>
 
         <label>업종 카테고리</label>
@@ -104,13 +141,13 @@ export function Diagnosis() {
 
         <label>운영 시간</label>
         <div className="diagnosis-row">
-          <input value={오픈_시간} onChange={(e) => set오픈_시간(e.target.value)} placeholder="오픈시간" />
+          <TextField value={오픈_시간} onChange={(e) => set오픈_시간(e.target.value)} placeholder="오픈시간" />
           <span className="diagnosis-tilde">~</span>
-          <input value={마감_시간} onChange={(e) => set마감_시간(e.target.value)} placeholder="마감시간" />
+          <TextField value={마감_시간} onChange={(e) => set마감_시간(e.target.value)} placeholder="마감시간" />
         </div>
 
-        <label>시그니처 상품</label>
-        <input value={시그니쳐_상품} onChange={(e) => set시그니쳐_상품(e.target.value)} placeholder="대표 메뉴를 입력하세요" />
+        <label>시그니처 상품 <em>*</em></label>
+        <TextField value={시그니쳐_상품} onChange={(e) => set시그니쳐_상품(e.target.value)} placeholder="대표 메뉴를 입력하세요" />
 
         <label>주 고객층: 연령대</label>
         <ChipSelect options={["10대", "20대", "30대", "40대"]} value={주고객_연령층} onChange={set주고객_연령층} />
@@ -126,7 +163,7 @@ export function Diagnosis() {
         <ChipSelect options={["1만원 이하", "1~2만원", "2만원 이상"]} value={객단가} onChange={set객단가} />
 
         <label>우리 가게의 장점</label>
-        <input value={가게_장점} onChange={(e) => set가게_장점(e.target.value)} placeholder="예: 아인슈페너가 맛있기로 유명해요" />
+        <TextField value={가게_장점} onChange={(e) => set가게_장점(e.target.value)} placeholder="예: 아인슈페너가 맛있기로 유명해요" />
 
         <label>가게 분위기 선택</label>
         <RangeSlider leftLabel="조용한" rightLabel="활기찬" value={활기} onChange={set활기} />
@@ -148,10 +185,14 @@ export function Diagnosis() {
         <ChipSelect options={["적극 관심", "조건부", "관심 없음"]} value={브랜딩_의향} onChange={set브랜딩_의향} />
       </Card>
 
-      {error && <p className="diagnosis-error">{error}</p>}
+      {error && (
+        <p className="diagnosis-error">
+          <AlertTriangle size={14} strokeWidth={2} /> {error}
+        </p>
+      )}
 
-      <button className="diagnosis-submit" disabled={submitting} onClick={handleSubmit}>
-        {submitting ? "진단 중..." : "진단하기"}
+      <button className="diagnosis-submit" onClick={handleSubmit}>
+        진단하기
       </button>
     </div>
   );

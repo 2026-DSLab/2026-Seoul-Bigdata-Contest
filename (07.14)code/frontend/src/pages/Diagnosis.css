@@ -32,6 +32,12 @@
   margin-top: 0;
 }
 
+.diagnosis-section label em {
+  font-style: normal;
+  color: var(--color-orange);
+  margin-left: 2px;
+}
+
 .diagnosis-section input,
 .diagnosis-section select {
   width: 100%;
@@ -54,6 +60,10 @@
 }
 
 .diagnosis-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   color: #DC2626;
   font-size: 13px;
   text-align: center;
