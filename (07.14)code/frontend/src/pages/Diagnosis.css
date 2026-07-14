@@ -1,0 +1,80 @@
+.diagnosis-title {
+  margin: 12px 0 16px;
+  font-size: 19px;
+}
+
+.diagnosis-section {
+  margin-bottom: 14px;
+}
+
+.diagnosis-section h4 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.diagnosis-section h4 span {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.diagnosis-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: 14px 0 6px;
+}
+
+.diagnosis-section label:first-of-type {
+  margin-top: 0;
+}
+
+.diagnosis-section input,
+.diagnosis-section select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+  background: var(--color-bg);
+}
+
+.diagnosis-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diagnosis-tilde {
+  color: var(--color-text-faint);
+}
+
+.diagnosis-error {
+  color: #DC2626;
+  font-size: 13px;
+  text-align: center;
+  margin: 8px 0;
+}
+
+.diagnosis-submit {
+  width: 100%;
+  padding: 15px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: var(--shadow-float);
+}
+
+.diagnosis-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -1,0 +1,24 @@
+@import "./styles/tokens.css";
+
+.app-shell {
+  max-width: var(--app-max-width);
+  height: 100vh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.12);
+}
+
+.app-content {
+  flex: 1;
+  padding: 16px 18px 96px;
+  overflow-y: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
