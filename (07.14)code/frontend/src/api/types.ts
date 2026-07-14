@@ -72,10 +72,19 @@ export interface RecommendationsResponse {
   recommendations: RecommendationCard[];
 }
 
+export interface AreaCluster {
+  label: string;
+  is_ours: boolean;
+  mbti_code: string;
+  polygon: [number, number][];
+  member_pins: MemberPin[];
+}
+
 export interface DistrictResponse {
   district_id: string;
   label: string;
   polygon: [number, number][];
+  clusters: AreaCluster[];
   member_pins: MemberPin[];
   member_count: number;
   tags: string[];

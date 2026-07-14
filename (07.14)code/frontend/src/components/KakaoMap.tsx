@@ -20,11 +20,17 @@ export interface MapPin {
   color: string;
 }
 
+export interface LegendItem {
+  label: string;
+  color: string;
+}
+
 interface KakaoMapProps {
   center: { lat: number; lng: number };
   polygons?: MapPolygon[];
   pins?: MapPin[];
   height?: number;
+  legendPosition?: "top-left" | "top-right";
 }
 
 let sdkLoadPromise: Promise<void> | null = null;
@@ -48,12 +54,20 @@ function loadKakaoSdk(): Promise<void> {
   return sdkLoadPromise;
 }
 
-export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: KakaoMapProps) {
+export function KakaoMap({
+  center,
+  polygons = [],
+  pins = [],
+  height = 260,
+  legendPosition = "top-right",
+}: KakaoMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (errorRef.current) errorRef.current.textContent = "";
 
     loadKakaoSdk()
       .then(() => {
@@ -64,8 +78,11 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
           level: 4,
         });
 
+        const bounds = new kakao.maps.LatLngBounds();
+
         polygons.forEach((poly) => {
           const path = poly.path.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng));
+          path.forEach((p: any) => bounds.extend(p));
           new kakao.maps.Polygon({
             map,
             path,
@@ -77,17 +94,20 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
           });
         });
 
+        // 가게 이름은 항상 띄우지 않고, 작은 색상 점만 표시 + 마우스 오버 시 이름 툴팁(title)
         pins.forEach((pin) => {
           const position = new kakao.maps.LatLng(pin.lat, pin.lng);
-          const marker = new kakao.maps.Marker({ map, position });
-          const overlay = new kakao.maps.CustomOverlay({
+          bounds.extend(position);
+          const dot = new kakao.maps.CustomOverlay({
             position,
-            yAnchor: 2.4,
-            content: `<div style="background:${pin.color};color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${pin.label}</div>`,
+            content: `<div title="${pin.label}" style="width:10px;height:10px;border-radius:50%;background:${pin.color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
           });
-          overlay.setMap(map);
-          void marker;
+          dot.setMap(map);
         });
+
+        if (!bounds.isEmpty()) {
+          map.setBounds(bounds, 40, 40, 40, 40);
+        }
       })
       .catch((err) => {
         if (errorRef.current) {
@@ -100,10 +120,22 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
     };
   }, [center.lat, center.lng, polygons, pins]);
 
+  const legendItems = polygons.filter((p) => p.label);
+
   return (
     <div className="kakaomap-wrap" style={{ height }}>
       <div ref={containerRef} className="kakaomap-container" />
       <div ref={errorRef} className="kakaomap-error" />
+      {legendItems.length > 0 && (
+        <div className={`kakaomap-legend kakaomap-legend-${legendPosition}`}>
+          {legendItems.map((item, i) => (
+            <div key={i} className="kakaomap-legend-item">
+              <span className="kakaomap-legend-dot" style={{ background: item.color }} />
+              <span className="kakaomap-legend-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

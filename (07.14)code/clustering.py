@@ -3,7 +3,8 @@ clustering.py  —  Phase 3: MBTI 클러스터링 및 Top3 상권 추천
 
 db.py에 누적된 같은 구(區) 내 가게들의 MBTI 8차원 벡터를 KMeans로 묶어
 '상권 후보 클러스터'를 만들고, 특정 가게와 가장 유사한 클러스터 Top N을 추천한다.
-클러스터의 지리적 경계는 멤버 좌표의 convex hull(3개 미만이면 원형 버퍼)로 근사한다.
+클러스터의 지리적 경계는 멤버 좌표 분포를 PCA로 분석해 방향성 있는 타원으로 근사한다
+(PDF 목업의 부드러운 블롭 형태와 유사하게 보이도록 함). 멤버가 1~2곳뿐이면 원형으로 대체.
 """
 
 import math
@@ -15,7 +16,12 @@ import db
 from agents.mbti_scorer import mbti_vector
 
 MIN_STORES_FOR_CLUSTERING = 3
-_CIRCLE_BUFFER_M = 90  # 멤버가 1~2곳뿐일 때 표시할 원형 버퍼 반경(m)
+_CIRCLE_BUFFER_M = 90       # 멤버가 1곳뿐일 때 표시할 원형 버퍼 반경(m)
+_ELLIPSE_PADDING_M = 60     # 타원이 멤버 좌표를 넉넉히 감싸도록 주는 여유(m)
+_ELLIPSE_MIN_SEMI_M = 90    # 타원 반장축/반단축 최소값(m) — 멤버가 몰려있어도 너무 작아지지 않게
+_ELLIPSE_MAX_SEMI_M = 450   # 반장축/반단축 최대값(m) — 잘못 지오코딩된 이상치 좌표 때문에 상권이
+                            # 서울 전역만큼 커지는 것을 방지하는 안전장치
+_OUTLIER_MAD_MULTIPLIER = 3.5  # 중앙값에서 이 배수(MAD 기준) 이상 떨어진 좌표는 이상치로 제외
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -25,7 +31,20 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / denom)
 
 
-def _circle_polygon(lat: float, lng: float, radius_m: float = _CIRCLE_BUFFER_M, n: int = 16) -> list[list[float]]:
+def _latlng_to_local_m(lat: float, lng: float, ref_lat: float, ref_lng: float) -> tuple[float, float]:
+    """기준점(ref) 대비 (x, y) 미터 단위 평면 좌표로 근사 변환 (등장방형 투영)."""
+    x = (lng - ref_lng) * 111_320 * math.cos(math.radians(ref_lat))
+    y = (lat - ref_lat) * 111_320
+    return x, y
+
+
+def _local_m_to_latlng(x: float, y: float, ref_lat: float, ref_lng: float) -> list[float]:
+    lat = ref_lat + y / 111_320
+    lng = ref_lng + x / (111_320 * math.cos(math.radians(ref_lat)) or 1)
+    return [lat, lng]
+
+
+def _circle_polygon(lat: float, lng: float, radius_m: float = _CIRCLE_BUFFER_M, n: int = 32) -> list[list[float]]:
     """중심 좌표 기준 반경 radius_m 짜리 근사 원형 폴리곤 [[lat, lng], ...]."""
     points = []
     lat_rad = math.radians(lat)
@@ -37,24 +56,61 @@ def _circle_polygon(lat: float, lng: float, radius_m: float = _CIRCLE_BUFFER_M, 
     return points
 
 
-def _hull_polygon(members: list[dict]) -> list[list[float]]:
-    coords = [[m["lat"], m["lng"]] for m in members if m["lat"] is not None and m["lng"] is not None]
-    if len(coords) < 3:
-        if not coords:
-            return []
-        avg_lat = sum(c[0] for c in coords) / len(coords)
-        avg_lng = sum(c[1] for c in coords) / len(coords)
-        return _circle_polygon(avg_lat, avg_lng)
+def _filter_outliers(xy: np.ndarray) -> np.ndarray:
+    """중앙값 기준 MAD(median absolute deviation)로 이상치 좌표를 제거한다.
+    잘못 지오코딩된 가게 1~2곳 때문에 타원 전체가 서울 전역만큼 커지는 것을 막기 위함."""
+    if len(xy) < 4:
+        return xy
+    median = np.median(xy, axis=0)
+    dist = np.linalg.norm(xy - median, axis=1)
+    mad = np.median(dist)
+    if mad < 1e-6:
+        return xy
+    keep = dist <= _OUTLIER_MAD_MULTIPLIER * mad
+    filtered = xy[keep]
+    return filtered if len(filtered) >= 3 else xy
 
-    try:
-        from scipy.spatial import ConvexHull
-        pts = np.array(coords)
-        hull = ConvexHull(pts)
-        return [list(pts[i]) for i in hull.vertices]
-    except Exception:
+
+def _hull_polygon(members: list[dict], n: int = 48) -> list[list[float]]:
+    """
+    멤버 좌표 분포를 PCA로 분석해, 퍼진 방향으로 길쭉한 타원 폴리곤을 동적으로 계산한다.
+    (실제 가게 좌표 기반 — 하드코딩 아님. 매 호출마다 멤버 구성에 맞춰 다시 계산됨)
+    이상치 좌표는 MAD 기준으로 제외하고, 타원 크기는 최대값으로 안전하게 제한한다.
+    """
+    coords = [[m["lat"], m["lng"]] for m in members if m["lat"] is not None and m["lng"] is not None]
+    if not coords:
+        return []
+    if len(coords) < 3:
         avg_lat = sum(c[0] for c in coords) / len(coords)
         avg_lng = sum(c[1] for c in coords) / len(coords)
-        return _circle_polygon(avg_lat, avg_lng, radius_m=150)
+        return _circle_polygon(avg_lat, avg_lng, radius_m=_ELLIPSE_MIN_SEMI_M)
+
+    ref_lat = sum(c[0] for c in coords) / len(coords)
+    ref_lng = sum(c[1] for c in coords) / len(coords)
+    xy = np.array([_latlng_to_local_m(lat, lng, ref_lat, ref_lng) for lat, lng in coords])
+    xy = _filter_outliers(xy)
+
+    center = xy.mean(axis=0)
+    centered = xy - center
+    cov = np.cov(centered.T)
+    eigvals, eigvecs = np.linalg.eigh(cov)  # 오름차순
+    order = np.argsort(eigvals)[::-1]
+    eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+    std = np.sqrt(np.clip(eigvals, 1e-6, None))
+
+    semi_major = min(max(std[0] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M), _ELLIPSE_MAX_SEMI_M)
+    semi_minor = min(max(std[1] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M * 0.7), _ELLIPSE_MAX_SEMI_M * 0.7)
+    angle = math.atan2(eigvecs[1, 0], eigvecs[0, 0])  # 주축(장축) 방향
+
+    polygon = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        ex, ey = semi_major * math.cos(t), semi_minor * math.sin(t)
+        rx = ex * math.cos(angle) - ey * math.sin(angle)
+        ry = ex * math.sin(angle) + ey * math.cos(angle)
+        px, py = center[0] + rx, center[1] + ry
+        polygon.append(_local_m_to_latlng(px, py, ref_lat, ref_lng))
+    return polygon
 
 
 def _mbti_code_from_centroid(centroid: np.ndarray) -> str:

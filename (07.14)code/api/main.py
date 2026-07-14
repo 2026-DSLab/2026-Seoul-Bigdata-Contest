@@ -207,22 +207,50 @@ def join_district(store_id: int, req: JoinDistrictRequest):
 
 @app.get("/api/districts/{district_id}")
 def get_district(district_id: str):
-    """STEP3: 우리 상권+ 대시보드 — 지도 폴리곤 + 멤버 핀 + 공동 브랜딩 전략."""
+    """
+    STEP3: 우리 상권+ 대시보드 — 지도 폴리곤 + 멤버 핀 + 공동 브랜딩 전략.
+
+    슬라이드 15처럼 지도 위에 "우리 상권"뿐 아니라 같은 구(區) 안의 다른 클러스터들도
+    함께 보여준다 (색으로 구분). 클러스터 경계는 매 요청마다 현재 stores.db 상태로
+    다시 계산되므로 하드코딩이 아니라 실시간 재계산 값이다.
+    """
     members = db.list_stores_by_district(district_id)
     if not members:
         raise HTTPException(404, "상권을 찾을 수 없습니다.")
 
-    polygon = clustering._hull_polygon(members)
     mbti_codes = [m["mbti_code"] for m in members if m["mbti_code"]]
+    dominant_code = max(set(mbti_codes), key=mbti_codes.count) if mbti_codes else "----"
 
     branding_agent = BrandingAgent()
-    dominant_code = max(set(mbti_codes), key=mbti_codes.count) if mbti_codes else "----"
     branding = branding_agent.brand_cluster(members, dominant_code)
+    our_label = members[0].get("district_label") or branding.get("label")
+
+    # 같은 구의 전체 클러스터 재계산 (지도에 여러 상권을 함께 표시하기 위함)
+    구 = members[0]["구"]
+    confirmed_ids = {m["id"] for m in members}
+    all_clusters = clustering.cluster_stores_in_gu(구)
+
+    clusters_payload = []
+    for cluster in all_clusters:
+        cluster_ids = {m["id"] for m in cluster["members"]}
+        is_ours = bool(cluster_ids & confirmed_ids)
+        clusters_payload.append({
+            "label": our_label if is_ours else f"{cluster['centroid_mbti_code']} 상권",
+            "is_ours": is_ours,
+            "mbti_code": cluster["centroid_mbti_code"],
+            "polygon": cluster["polygon"],
+            "member_pins": [
+                {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],
+                 "mbti_code": m["mbti_code"], "업종_카테고리": m["업종_카테고리"]}
+                for m in cluster["members"]
+            ],
+        })
 
     return {
         "district_id": district_id,
-        "label": members[0].get("district_label") or branding.get("label"),
-        "polygon": polygon,
+        "label": our_label,
+        "polygon": clustering._hull_polygon(members),
+        "clusters": clusters_payload,
         "member_pins": [
             {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],
              "mbti_code": m["mbti_code"], "업종_카테고리": m["업종_카테고리"]}

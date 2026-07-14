@@ -2,10 +2,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "../components/Card";
+import { LoadingState } from "../components/LoadingState";
 import { api } from "../api/client";
 import { useAppState } from "../state/AppState";
 import type { RecommendationCard } from "../api/types";
 import "./Recommendations.css";
+
+const RECO_STEPS = [
+  "같은 지역 가게들의 MBTI를 비교하고 있어요",
+  "가장 잘 어울리는 상권을 찾는 중이에요",
+  "상권 브랜딩을 만들고 있어요",
+];
+
+const CONFIRM_STEPS = [
+  "우리 상권을 확정하고 있어요",
+  "상권 공동 브랜딩 전략을 준비하는 중이에요",
+];
 
 export function Recommendations() {
   const navigate = useNavigate();
@@ -57,10 +69,17 @@ export function Recommendations() {
       navigate(`/district/${districtId}`);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "상권 확정 중 오류가 발생했습니다.");
-    } finally {
       setConfirming(false);
     }
   };
+
+  if (confirming) {
+    return (
+      <div className="reco">
+        <LoadingState steps={CONFIRM_STEPS} />
+      </div>
+    );
+  }
 
   return (
     <div className="reco">
@@ -74,7 +93,7 @@ export function Recommendations() {
       </h2>
       <p className="reco-sub">MBTI 진단 결과를 기반으로 가장 잘 맞는 상권 {cards.length || 3}곳을 추천했어요</p>
 
-      {loading && <p className="reco-loading">추천 상권을 분석하는 중...</p>}
+      {loading && <LoadingState steps={RECO_STEPS} />}
       {message && <Card className="reco-message">{message}</Card>}
 
       {cards.map((card, idx) => (
@@ -104,10 +123,10 @@ export function Recommendations() {
       {cards.length > 0 && (
         <button
           className="reco-confirm-btn"
-          disabled={selectedIdx === null || confirming}
+          disabled={selectedIdx === null}
           onClick={handleConfirm}
         >
-          {confirming ? "확정 중..." : "우리 상권 확정하기"}
+          우리 상권 확정하기
         </button>
       )}
     </div>

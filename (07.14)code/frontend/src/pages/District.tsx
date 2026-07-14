@@ -3,11 +3,18 @@ import { useParams } from "react-router-dom";
 import { Store, Footprints, Tag } from "lucide-react";
 import { Card } from "../components/Card";
 import { KakaoMap } from "../components/KakaoMap";
+import { LoadingState } from "../components/LoadingState";
 import { api } from "../api/client";
 import type { DistrictResponse } from "../api/types";
 import "./District.css";
 
-const PIN_COLORS = ["#6D5BD0", "#22C55E", "#F97316", "#0EA5E9", "#EC4899"];
+const OURS_COLOR = "#6D5BD0";
+const OTHER_COLORS = ["#22C55E", "#F97316", "#0EA5E9", "#EC4899", "#EAB308"];
+
+const DISTRICT_STEPS = [
+  "우리 상권 데이터를 불러오는 중이에요",
+  "주변 상권 지도를 그리는 중이에요",
+];
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6_371_000;
@@ -42,24 +49,43 @@ export function District() {
     );
   }, [districtId]);
 
-  const validPins = useMemo(
+  const ourPins = useMemo(
     () => district?.member_pins.filter((p) => p.lat != null && p.lng != null) ?? [],
     [district]
   );
 
-  const center = validPins.length
+  const clusters = district?.clusters ?? [];
+
+  const allValidPins = useMemo(
+    () => clusters.flatMap((c) => c.member_pins.filter((p) => p.lat != null && p.lng != null)),
+    [clusters]
+  );
+
+  const center = allValidPins.length
     ? {
-        lat: validPins.reduce((s, p) => s + (p.lat ?? 0), 0) / validPins.length,
-        lng: validPins.reduce((s, p) => s + (p.lng ?? 0), 0) / validPins.length,
+        lat: allValidPins.reduce((s, p) => s + (p.lat ?? 0), 0) / allValidPins.length,
+        lng: allValidPins.reduce((s, p) => s + (p.lng ?? 0), 0) / allValidPins.length,
       }
     : { lat: 37.5478, lng: 126.9228 };
 
-  const walkingDistanceKm = validPins.length >= 2
-    ? maxSpanKm(validPins.map((p) => ({ lat: p.lat as number, lng: p.lng as number })))
+  const walkingDistanceKm = ourPins.length >= 2
+    ? maxSpanKm(ourPins.map((p) => ({ lat: p.lat as number, lng: p.lng as number })))
     : 0;
 
   if (error) return <p className="district-error">{error}</p>;
-  if (!district) return <p className="district-loading">불러오는 중...</p>;
+  if (!district) return <LoadingState steps={DISTRICT_STEPS} />;
+
+  let otherColorIdx = 0;
+  const polygons = clusters.map((c) => {
+    const color = c.is_ours ? OURS_COLOR : OTHER_COLORS[otherColorIdx++ % OTHER_COLORS.length];
+    return { path: c.polygon, color, label: c.label, _memberPins: c.member_pins, _color: color };
+  });
+
+  const pins = polygons.flatMap((p) =>
+    p._memberPins
+      .filter((m) => m.lat != null && m.lng != null)
+      .map((m) => ({ lat: m.lat as number, lng: m.lng as number, label: m.상호명, color: p._color }))
+  );
 
   return (
     <div className="district">
@@ -98,16 +124,12 @@ export function District() {
         <Card className="district-map-card">
           <KakaoMap
             center={center}
-            polygons={[{ path: district.polygon, color: "#6D5BD0" }]}
-            pins={validPins.map((p, i) => ({
-              lat: p.lat as number,
-              lng: p.lng as number,
-              label: p.상호명,
-              color: PIN_COLORS[i % PIN_COLORS.length],
-            }))}
+            polygons={polygons.map(({ path, color, label }) => ({ path, color, label }))}
+            pins={pins}
           />
           <p className="district-map-caption">
             이 상권은 행정구역이 아닌 고객 행동과 브랜딩 DNA로 새롭게 정의되었습니다
+            {clusters.length > 1 && ` · 주변 ${clusters.length - 1}개 상권과 함께 표시 중`}
           </p>
         </Card>
       ) : (
