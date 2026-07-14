@@ -1,0 +1,163 @@
+.district-title {
+  margin: 12px 0 2px;
+  font-size: 19px;
+}
+
+.district-sub {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.district-name-card {
+  margin-bottom: 12px;
+}
+
+.district-name-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+.district-name-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.district-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.district-stat {
+  text-align: center;
+  padding: 14px 8px;
+}
+
+.district-stat-icon {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 8px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.district-stat-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.district-stat-label {
+  display: block;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+
+.district-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-border);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+
+.district-tabs button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.district-tabs button.active {
+  background: var(--gradient-primary);
+  color: #fff;
+}
+
+.district-nearby-placeholder {
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.district-map-card {
+  margin-bottom: 20px;
+}
+
+.district-map-caption {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.district-section-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.district-empty-strategy {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.district-strategy-card {
+  margin-bottom: 12px;
+}
+
+.district-strategy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.district-strategy-head h5 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.district-strategy-badge {
+  font-size: 10px;
+  color: var(--color-text-faint);
+  background: var(--color-bg);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.district-strategy-card p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.district-strategy-effect {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.district-error,
+.district-loading {
+  text-align: center;
+  margin-top: 60px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}

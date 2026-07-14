@@ -1,0 +1,49 @@
+:root {
+  /* 로고/포인트 컬러 (PDF 표지: 상권=남색, 더하기=오렌지) */
+  --color-navy: #1E2A5E;
+  --color-orange: #F97316;
+  --color-orange-soft: #FFEDD9;
+
+  /* Primary 그라디언트 (MBTI 진단 CTA / 결과 카드 배경) */
+  --gradient-primary: linear-gradient(135deg, #6D5BD0 0%, #9B7FE8 100%);
+  --color-primary: #4F46E5;
+  --color-primary-dark: #4338CA;
+  --color-primary-soft: #EEECFB;
+
+  --color-bg: #F5F6FA;
+  --color-surface: #FFFFFF;
+  --color-border: #ECEDF3;
+
+  --color-text: #1B1E28;
+  --color-text-muted: #8A8FA3;
+  --color-text-faint: #B4B8C6;
+
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 4px 20px rgba(30, 30, 60, 0.07);
+  --shadow-float: 0 8px 28px rgba(79, 70, 229, 0.22);
+
+  --app-max-width: 430px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #E7E8EF;
+  color: var(--color-text);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea {
+  font-family: inherit;
+}
