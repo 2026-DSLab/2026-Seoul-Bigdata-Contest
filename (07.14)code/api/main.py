@@ -179,7 +179,7 @@ def get_recommendations(store_id: int):
     if not clusters:
         return {
             "status": "insufficient_data",
-            "message": "같은 구에 비교할 가게 데이터가 아직 충분하지 않습니다. "
+            "message": "도보권 내에 비교할 가게 데이터가 아직 충분하지 않습니다. "
                        "새로운 상권을 시작하는 첫 가게가 되어보세요!",
             "recommendations": [],
         }
@@ -210,9 +210,14 @@ def get_district(district_id: str):
     """
     STEP3: 우리 상권+ 대시보드 — 지도 폴리곤 + 멤버 핀 + 공동 브랜딩 전략.
 
-    슬라이드 15처럼 지도 위에 "우리 상권"뿐 아니라 같은 구(區) 안의 다른 클러스터들도
+    슬라이드 15처럼 지도 위에 "우리 상권"뿐 아니라 도보권 안의 다른 정체성 클러스터들도
     함께 보여준다 (색으로 구분). 클러스터 경계는 매 요청마다 현재 stores.db 상태로
     다시 계산되므로 하드코딩이 아니라 실시간 재계산 값이다.
+
+    "우리 상권"은 확정된 멤버(district_id)를 그대로 하나의 폴리곤으로 고정 표시한다.
+    재클러스터링 결과가 확정 멤버를 두 클러스터로 쪼개더라도(예: MBTI가 애매하게
+    갈리는 경우) 같은 이름의 폴리곤이 지도에 중복 표시되지 않도록, 확정 멤버를 포함하는
+    클러스터는 "주변 상권" 목록에서 제외한다.
     """
     members = db.list_stores_by_district(district_id)
     if not members:
@@ -225,18 +230,33 @@ def get_district(district_id: str):
     branding = branding_agent.brand_cluster(members, dominant_code)
     our_label = members[0].get("district_label") or branding.get("label")
 
-    # 같은 구의 전체 클러스터 재계산 (지도에 여러 상권을 함께 표시하기 위함)
-    구 = members[0]["구"]
     confirmed_ids = {m["id"] for m in members}
-    all_clusters = clustering.cluster_stores_in_gu(구)
+    all_clusters = clustering.cluster_all_stores()
+    our_polygon = clustering._hull_polygon(members)
 
-    clusters_payload = []
+    clusters_payload = [{
+        "label": our_label,
+        "is_ours": True,
+        "mbti_code": dominant_code,
+        "polygon": our_polygon,
+        "member_pins": [
+            {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],
+             "mbti_code": m["mbti_code"], "업종_카테고리": m["업종_카테고리"]}
+            for m in members
+        ],
+    }]
     for cluster in all_clusters:
         cluster_ids = {m["id"] for m in cluster["members"]}
-        is_ours = bool(cluster_ids & confirmed_ids)
+        if cluster_ids & confirmed_ids:
+            continue  # 우리 상권과 겹치는 클러스터는 위에서 이미 고정 표시했으므로 건너뜀
+        동_list = [m["동"] for m in cluster["members"] if m.get("동")]
+        dominant_동 = max(set(동_list), key=동_list.count) if 동_list else ""
+        # 서로 다른 물리적 클러스터가 우연히 같은 MBTI 코드를 가질 수 있어(예: 도보권 밖의
+        # 유사 정체성 클러스터) 동 이름을 붙여 범례에서 별개 항목임을 구분한다.
+        label = f"{cluster['centroid_mbti_code']} 상권 ({dominant_동})" if dominant_동 else f"{cluster['centroid_mbti_code']} 상권"
         clusters_payload.append({
-            "label": our_label if is_ours else f"{cluster['centroid_mbti_code']} 상권",
-            "is_ours": is_ours,
+            "label": label,
+            "is_ours": False,
             "mbti_code": cluster["centroid_mbti_code"],
             "polygon": cluster["polygon"],
             "member_pins": [
@@ -249,7 +269,7 @@ def get_district(district_id: str):
     return {
         "district_id": district_id,
         "label": our_label,
-        "polygon": clustering._hull_polygon(members),
+        "polygon": our_polygon,
         "clusters": clusters_payload,
         "member_pins": [
             {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],

@@ -92,11 +92,11 @@ def get_store(store_id: int) -> dict | None:
         return _row_to_dict(row) if row else None
 
 
-def list_stores_by_gu(구: str, exclude_id: int | None = None) -> list[dict]:
+def list_all_stores(exclude_id: int | None = None) -> list[dict]:
+    """구/동 무관 전체 가게 목록 (클러스터링은 행정구역이 아닌 도보거리+MBTI로 묶는다)."""
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT * FROM stores WHERE 구 = ? AND lat IS NOT NULL AND lng IS NOT NULL",
-            (구,),
+            "SELECT * FROM stores WHERE lat IS NOT NULL AND lng IS NOT NULL"
         ).fetchall()
     stores = [_row_to_dict(r) for r in rows]
     if exclude_id is not None:
