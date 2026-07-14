@@ -55,6 +55,8 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
   useEffect(() => {
     let cancelled = false;
 
+    if (errorRef.current) errorRef.current.textContent = "";
+
     loadKakaoSdk()
       .then(() => {
         if (cancelled || !containerRef.current) return;
@@ -75,6 +77,16 @@ export function KakaoMap({ center, polygons = [], pins = [], height = 260 }: Kak
             fillColor: poly.color,
             fillOpacity: 0.18,
           });
+
+          if (poly.label && poly.path.length > 0) {
+            const centerLat = poly.path.reduce((s, [lat]) => s + lat, 0) / poly.path.length;
+            const centerLng = poly.path.reduce((s, [, lng]) => s + lng, 0) / poly.path.length;
+            const labelOverlay = new kakao.maps.CustomOverlay({
+              position: new kakao.maps.LatLng(centerLat, centerLng),
+              content: `<div style="background:${poly.color};color:#fff;font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid #fff">${poly.label}</div>`,
+            });
+            labelOverlay.setMap(map);
+          }
         });
 
         pins.forEach((pin) => {
