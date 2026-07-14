@@ -17,8 +17,11 @@ from agents.mbti_scorer import mbti_vector
 
 MIN_STORES_FOR_CLUSTERING = 3
 _CIRCLE_BUFFER_M = 90       # 멤버가 1곳뿐일 때 표시할 원형 버퍼 반경(m)
-_ELLIPSE_PADDING_M = 70     # 타원이 멤버 좌표를 넉넉히 감싸도록 주는 여유(m)
+_ELLIPSE_PADDING_M = 60     # 타원이 멤버 좌표를 넉넉히 감싸도록 주는 여유(m)
 _ELLIPSE_MIN_SEMI_M = 90    # 타원 반장축/반단축 최소값(m) — 멤버가 몰려있어도 너무 작아지지 않게
+_ELLIPSE_MAX_SEMI_M = 450   # 반장축/반단축 최대값(m) — 잘못 지오코딩된 이상치 좌표 때문에 상권이
+                            # 서울 전역만큼 커지는 것을 방지하는 안전장치
+_OUTLIER_MAD_MULTIPLIER = 3.5  # 중앙값에서 이 배수(MAD 기준) 이상 떨어진 좌표는 이상치로 제외
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -53,10 +56,26 @@ def _circle_polygon(lat: float, lng: float, radius_m: float = _CIRCLE_BUFFER_M, 
     return points
 
 
+def _filter_outliers(xy: np.ndarray) -> np.ndarray:
+    """중앙값 기준 MAD(median absolute deviation)로 이상치 좌표를 제거한다.
+    잘못 지오코딩된 가게 1~2곳 때문에 타원 전체가 서울 전역만큼 커지는 것을 막기 위함."""
+    if len(xy) < 4:
+        return xy
+    median = np.median(xy, axis=0)
+    dist = np.linalg.norm(xy - median, axis=1)
+    mad = np.median(dist)
+    if mad < 1e-6:
+        return xy
+    keep = dist <= _OUTLIER_MAD_MULTIPLIER * mad
+    filtered = xy[keep]
+    return filtered if len(filtered) >= 3 else xy
+
+
 def _hull_polygon(members: list[dict], n: int = 48) -> list[list[float]]:
     """
     멤버 좌표 분포를 PCA로 분석해, 퍼진 방향으로 길쭉한 타원 폴리곤을 동적으로 계산한다.
     (실제 가게 좌표 기반 — 하드코딩 아님. 매 호출마다 멤버 구성에 맞춰 다시 계산됨)
+    이상치 좌표는 MAD 기준으로 제외하고, 타원 크기는 최대값으로 안전하게 제한한다.
     """
     coords = [[m["lat"], m["lng"]] for m in members if m["lat"] is not None and m["lng"] is not None]
     if not coords:
@@ -69,6 +88,7 @@ def _hull_polygon(members: list[dict], n: int = 48) -> list[list[float]]:
     ref_lat = sum(c[0] for c in coords) / len(coords)
     ref_lng = sum(c[1] for c in coords) / len(coords)
     xy = np.array([_latlng_to_local_m(lat, lng, ref_lat, ref_lng) for lat, lng in coords])
+    xy = _filter_outliers(xy)
 
     center = xy.mean(axis=0)
     centered = xy - center
@@ -78,8 +98,8 @@ def _hull_polygon(members: list[dict], n: int = 48) -> list[list[float]]:
     eigvals, eigvecs = eigvals[order], eigvecs[:, order]
     std = np.sqrt(np.clip(eigvals, 1e-6, None))
 
-    semi_major = max(std[0] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M)
-    semi_minor = max(std[1] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M * 0.7)
+    semi_major = min(max(std[0] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M), _ELLIPSE_MAX_SEMI_M)
+    semi_minor = min(max(std[1] * 2.4 + _ELLIPSE_PADDING_M, _ELLIPSE_MIN_SEMI_M * 0.7), _ELLIPSE_MAX_SEMI_M * 0.7)
     angle = math.atan2(eigvecs[1, 0], eigvecs[0, 0])  # 주축(장축) 방향
 
     polygon = []
