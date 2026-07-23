@@ -34,3 +34,28 @@ export function ComingSoon({ title }: { title: string }) {
     </div>
   );
 }
+
+export function Profile() {
+  const navigate = useNavigate();
+  const { userEmail, logout } = useAppState();
+
+  return (
+    <div style={{ textAlign: "center", marginTop: 60, color: "var(--color-text-muted)" }}>
+      <p>{userEmail}</p>
+      <p>내 정보 기능은 준비 중입니다.</p>
+      <button
+        style={{
+          marginTop: 14, padding: "10px 18px", border: "none",
+          borderRadius: "var(--radius-md)", background: "var(--color-primary)",
+          color: "#fff", fontWeight: 700, cursor: "pointer",
+        }}
+        onClick={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
+      >
+        로그아웃
+      </button>
+    </div>
+  );
+}
