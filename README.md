@@ -1,4 +1,5 @@
 # 🏙️ 2026 서울시 빅데이터 활용 경진대회
+<img width="1320" height="1690" alt="KakaoTalk_20260706_182209620" src="https://github.com/user-attachments/assets/3919f5a5-99d2-4475-82e1-1684d5fbdf6d" />
 
 데이터로 서울을 분석하고, 더 나은 도시를 만들기 위한 프로젝트입니다.  
 본 저장소는 데이터 분석부터 모델링, 결과 도출 및 시각화까지 전 과정을 관리합니다.
@@ -30,4 +31,4 @@
 일정관리 구글 시트
 https://docs.google.com/spreadsheets/d/1WBbG8dI55mjiBtXcC28PO7cvNSSU2OfzdI1qVDcl12I/edit?usp=sharing
 
-## 본 레포지토리는 대회 진행에 따라 지속적으로 업데이트됩니다.
+
