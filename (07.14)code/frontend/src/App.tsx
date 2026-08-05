@@ -25,6 +25,7 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      <div className="app-notch-spacer" />
       <div className="app-content">
         <Routes>
           <Route path="/login" element={<Login />} />

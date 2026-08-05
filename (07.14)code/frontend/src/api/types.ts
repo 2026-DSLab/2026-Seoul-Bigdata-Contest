@@ -74,10 +74,16 @@ export interface RecommendationsResponse {
 
 export interface AreaCluster {
   label: string;
+  name?: string;
   is_ours: boolean;
   mbti_code: string;
   polygon: [number, number][];
   member_pins: MemberPin[];
+  distance_m?: number | null;
+  tags?: string[];
+  main_categories?: string;
+  mood?: string;
+  visitor_feature?: string;
 }
 
 export interface DistrictResponse {

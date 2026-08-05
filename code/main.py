@@ -4,7 +4,7 @@ main.py  —  CLI 진입점
 사용법:
     python main.py                    # 대화형 입력
     python main.py --json input.json  # JSON 파일로 입력
-    python main.py --json ../data/storyline/inputs/user_input1.json #시나리오 실행
+    python main.py --json ../data/storyline/inputs/user_input3.json #시나리오 실행
 
 """
 

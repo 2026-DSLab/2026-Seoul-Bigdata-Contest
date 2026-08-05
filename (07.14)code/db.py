@@ -92,6 +92,11 @@ def get_store(store_id: int) -> dict | None:
         return _row_to_dict(row) if row else None
 
 
+def count_seed_stores() -> int:
+    with _connect() as conn:
+        return conn.execute("SELECT COUNT(*) FROM stores WHERE is_seed = 1").fetchone()[0]
+
+
 def list_all_stores(exclude_id: int | None = None) -> list[dict]:
     """구/동 무관 전체 가게 목록 (클러스터링은 행정구역이 아닌 도보거리+MBTI로 묶는다)."""
     with _connect() as conn:

@@ -6,8 +6,8 @@ import { useAppState } from "../state/AppState";
 import "./DiagnosisResult.css";
 
 const LETTER_DESCRIPTION: Record<string, string> = {
-  D: "오후~저녁 시간대에 유동·매출이 집중돼요",
-  N: "심야 시간대에 유동·매출이 강한 편이에요",
+  D: "아침~늦은 오후(06~17시)에 유동·매출이 집중돼요",
+  N: "저녁~새벽(17~06시)에 유동·매출이 강한 편이에요",
   U: "가성비와 실속을 우선하는 소비가 많아요",
   F: "분위기와 취향을 중시하는 소비가 많아요",
   T: "역세권 유입 고객 비중이 높아요",
