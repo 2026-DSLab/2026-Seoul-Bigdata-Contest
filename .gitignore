@@ -11,3 +11,13 @@
 *.pyc
 *.pyc
 *.pyc
+*.pyc
+code/agents/__pycache__/stage3_synthesis.cpython-312.pyc
+code/agents/__pycache__/stage3_naming.cpython-312.pyc
+code/agents/__pycache__/stage2_industry.cpython-312.pyc
+code/agents/__pycache__/stage2_competition.cpython-312.pyc
+code/agents/__pycache__/stage2_commercial.cpython-312.pyc
+code/agents/__pycache__/base_agent.cpython-312.pyc
+code/agents/__pycache__/__init__.cpython-312.pyc
+code/__pycache__/pipeline.cpython-312.pyc
+code/__pycache__/data_loader.cpython-312.pyc
