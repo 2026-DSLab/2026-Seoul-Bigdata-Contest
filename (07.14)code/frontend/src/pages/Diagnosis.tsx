@@ -22,11 +22,19 @@ const ANALYZE_STEPS = [
   "우리 가게 MBTI를 계산하는 중이에요",
 ];
 
-function moodDescription(activity: number, brightness: number, style: number): string {
+function moodDescription(
+  activity: number,
+  brightness: number,
+  style: number,
+  spaciousness: number,
+  formality: number
+): string {
   const a = activity >= 50 ? "활기찬" : "조용한";
   const b = brightness >= 50 ? "어둡고 무드있는" : "밝고 환한";
   const s = style >= 50 ? "화려한" : "심플한";
-  return `${a}, ${b}, ${s}`;
+  const sp = spaciousness >= 50 ? "넓고 트인" : "아늑하고 좁은";
+  const f = formality >= 50 ? "격식있는" : "편안하고 캐주얼한";
+  return `${a}, ${b}, ${s}, ${sp}, ${f}`;
 }
 
 export function Diagnosis() {
@@ -54,6 +62,8 @@ export function Diagnosis() {
   const [활기, set활기] = useState(50);
   const [무드, set무드] = useState(50);
   const [화려함, set화려함] = useState(50);
+  const [공간감, set공간감] = useState(50);
+  const [격식, set격식] = useState(50);
   const [위협요인, set위협요인] = useState<string[]>([]);
 
   // 함께 성장하기
@@ -81,7 +91,7 @@ export function Diagnosis() {
     setSubmitting(true);
     setError(null);
     try {
-      const 분위기 = moodDescription(활기, 무드, 화려함);
+      const 분위기 = moodDescription(활기, 무드, 화려함, 공간감, 격식);
       const 고민_사항 = 위협요인.length
         ? `최근 고민: ${위협요인.join(", ")}`
         : "특별한 고민사항은 없지만 매출 개선 방안이 궁금해요";
@@ -169,6 +179,8 @@ export function Diagnosis() {
         <RangeSlider leftLabel="조용한" rightLabel="활기찬" value={활기} onChange={set활기} />
         <RangeSlider leftLabel="밝고 환한" rightLabel="어둡고 무드있는" value={무드} onChange={set무드} />
         <RangeSlider leftLabel="심플한" rightLabel="화려한" value={화려함} onChange={set화려함} />
+        <RangeSlider leftLabel="아늑한" rightLabel="넓고 트인" value={공간감} onChange={set공간감} />
+        <RangeSlider leftLabel="편안한" rightLabel="격식있는" value={격식} onChange={set격식} />
 
         <label>최근 가게 위협 요인 (복수 응답 가능)</label>
         <ChipSelect

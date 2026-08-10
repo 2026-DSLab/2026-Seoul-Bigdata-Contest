@@ -12,6 +12,13 @@ import os
 import sys
 import uuid
 
+# Windows 콘솔 기본 코드페이지(cp949)로는 로그 속 이모지·em dash가 깨져 UnicodeEncodeError로
+# 요청 자체가 500 나는 경우가 있어, 실행 방식(터미널/서비스)과 무관하게 항상 UTF-8로 고정한다.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 # api/ 의 부모 디렉토리(코드 루트)를 sys.path에 추가 — 실행 위치와 무관하게 기존 모듈 임포트 보장
 _CODE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _CODE_ROOT not in sys.path:
@@ -206,7 +213,7 @@ def join_district(store_id: int, req: JoinDistrictRequest):
 
 
 @app.get("/api/districts/{district_id}")
-def get_district(district_id: str):
+async def get_district(district_id: str):
     """
     STEP3: 우리 상권+ 대시보드 — 지도 폴리곤 + 멤버 핀 + 공동 브랜딩 전략.
 
@@ -234,31 +241,69 @@ def get_district(district_id: str):
     all_clusters = clustering.cluster_all_stores()
     our_polygon = clustering._hull_polygon(members)
 
+    neighbor_clusters = [
+        c for c in all_clusters
+        if not ({m["id"] for m in c["members"]} & confirmed_ids)
+        # 우리 상권과 겹치는 클러스터는 위에서 이미 고정 표시했으므로 건너뜀
+    ]
+
+    # "주변 상권"도 원시 MBTI 코드가 아니라 "우리 상권"과 동일하게 AI가 재정의한
+    # 상권 이름을 보여준다 (여러 클러스터이므로 병렬로 호출해 지연을 줄인다).
+    # 클라이언트 인스턴스를 스레드 간에 공유하지 않도록 호출마다 새로 만든다.
+    def _brand_neighbor(cluster_members: list[dict], code: str) -> dict:
+        return BrandingAgent().brand_cluster(cluster_members, code)
+
+    loop = asyncio.get_event_loop()
+    neighbor_brandings = await asyncio.gather(*[
+        loop.run_in_executor(None, _brand_neighbor, c["members"], c["centroid_mbti_code"])
+        for c in neighbor_clusters
+    ]) if neighbor_clusters else []
+
     clusters_payload = [{
         "label": our_label,
+        "name": our_label,
         "is_ours": True,
         "mbti_code": dominant_code,
         "polygon": our_polygon,
+        "distance_m": 0,
+        "tags": branding.get("tags", []),
+        "main_categories": branding.get("main_categories", ""),
+        "mood": branding.get("mood", ""),
+        "visitor_feature": branding.get("visitor_feature", ""),
         "member_pins": [
             {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],
              "mbti_code": m["mbti_code"], "업종_카테고리": m["업종_카테고리"]}
             for m in members
         ],
     }]
-    for cluster in all_clusters:
-        cluster_ids = {m["id"] for m in cluster["members"]}
-        if cluster_ids & confirmed_ids:
-            continue  # 우리 상권과 겹치는 클러스터는 위에서 이미 고정 표시했으므로 건너뜀
+    for cluster, n_branding in zip(neighbor_clusters, neighbor_brandings):
         동_list = [m["동"] for m in cluster["members"] if m.get("동")]
         dominant_동 = max(set(동_list), key=동_list.count) if 동_list else ""
-        # 서로 다른 물리적 클러스터가 우연히 같은 MBTI 코드를 가질 수 있어(예: 도보권 밖의
-        # 유사 정체성 클러스터) 동 이름을 붙여 범례에서 별개 항목임을 구분한다.
-        label = f"{cluster['centroid_mbti_code']} 상권 ({dominant_동})" if dominant_동 else f"{cluster['centroid_mbti_code']} 상권"
+
+        dist_m = clustering.nearest_distance_m(members, cluster["members"])
+        dist_suffix = ""
+        if dist_m is not None:
+            dist_suffix = f" · 도보 {round(dist_m)}m" if dist_m < 1000 else f" · 도보 {dist_m / 1000:.1f}km"
+
+        # 재정의된 상권 이름(브랜딩 실패 시 brand_cluster 자체 폴백인 "{코드} 상권" 사용) +
+        # 동 이름(서로 다른 물리적 클러스터가 우연히 같은 이름/코드를 가질 때 범례에서 구분용) +
+        # 실제 거리(dist_suffix)까지 함께 보여준다.
+        neighbor_label = n_branding.get("label") or f"{cluster['centroid_mbti_code']} 상권"
+        label = (
+            f"{neighbor_label} ({dominant_동}){dist_suffix}"
+            if dominant_동 else f"{neighbor_label}{dist_suffix}"
+        )
         clusters_payload.append({
             "label": label,
+            "name": neighbor_label,
             "is_ours": False,
             "mbti_code": cluster["centroid_mbti_code"],
             "polygon": cluster["polygon"],
+            "distance_m": round(dist_m) if dist_m is not None else None,
+            "tags": n_branding.get("tags", []),
+            "main_categories": n_branding.get("main_categories", ""),
+            "mood": n_branding.get("mood", ""),
+            "visitor_feature": n_branding.get("visitor_feature", ""),
             "member_pins": [
                 {"id": m["id"], "상호명": m["상호명"], "lat": m["lat"], "lng": m["lng"],
                  "mbti_code": m["mbti_code"], "업종_카테고리": m["업종_카테고리"]}

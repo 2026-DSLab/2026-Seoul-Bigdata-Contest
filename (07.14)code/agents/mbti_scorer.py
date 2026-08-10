@@ -37,7 +37,32 @@ def _pct(a: float, b: float) -> tuple[int, int]:
 
 
 def _score_dn(data: dict) -> tuple[int, int]:
-    """D(주간형)/N(야간형) — 유동인구+매출 시간대 분포 기반."""
+    """D(주간형)/N(야간형) — 6개 시간대 유동인구+매출 전체 분포 기반.
+
+    DataLoader가 실제 CSV에서 집계한 시간대별 전체 분포(유동인구_시간대별/매출_시간대별)가
+    있으면 그걸 가중합해 완만한 점수를 낸다. "피크 시간대 하나"만 보고 낮/밤을 이분류하면
+    피크가 우연히 밤 슬롯에 걸릴 때 0%/100%처럼 극단적으로 튀기 쉬운데, 6개 슬롯 전체를
+    보면 그런 쏠림이 크게 줄어든다.
+
+    전체 분포가 없는 경우(예: seed_demo_data.py처럼 손으로 만든 피크 값만 있는 데이터)는
+    기존처럼 피크 시간대 하나만으로 이분류하는 방식으로 폴백한다.
+    """
+    pop_by_slot = data.get("유동인구_시간대별") or {}
+    sales_by_slot = data.get("매출_시간대별") or {}
+
+    if pop_by_slot or sales_by_slot:
+        day_score = (
+            sum(v for k, v in pop_by_slot.items() if k in _DAY_SLOTS)
+            + sum(v for k, v in sales_by_slot.items() if k in _DAY_SLOTS)
+        )
+        night_score = (
+            sum(v for k, v in pop_by_slot.items() if k in _NIGHT_SLOTS)
+            + sum(v for k, v in sales_by_slot.items() if k in _NIGHT_SLOTS)
+        )
+        if day_score > 0 or night_score > 0:
+            return _pct(day_score, night_score)
+
+    # 폴백: 피크 시간대 하나만으로 낮/밤 이분류
     pop_day = pop_night = sales_day = sales_night = 0
 
     최다_유동_시간대 = data.get("최다_유동인구_시간대")
@@ -54,7 +79,6 @@ def _score_dn(data: dict) -> tuple[int, int]:
     elif 최다_매출_시간대 in _NIGHT_SLOTS:
         sales_night += 최다_매출_금액
 
-    # 데이터가 전부 없으면 중립
     day_score = pop_day + sales_day
     night_score = pop_night + sales_night
     return _pct(day_score, night_score)

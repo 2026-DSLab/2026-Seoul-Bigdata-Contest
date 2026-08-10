@@ -261,6 +261,22 @@ def cluster_all_stores(exclude_id: int | None = None) -> list[dict]:
     return clusters
 
 
+def nearest_distance_m(members_a: list[dict], members_b: list[dict]) -> float | None:
+    pts_a = [(m["lat"], m["lng"]) for m in members_a if m["lat"] is not None and m["lng"] is not None]
+    pts_b = [(m["lat"], m["lng"]) for m in members_b if m["lat"] is not None and m["lng"] is not None]
+    if not pts_a or not pts_b:
+        return None
+
+    best = None
+    for a_lat, a_lng in pts_a:
+        for b_lat, b_lng in pts_b:
+            x, y = _latlng_to_local_m(b_lat, b_lng, a_lat, a_lng)
+            dist = math.hypot(x, y)
+            if best is None or dist < best:
+                best = dist
+    return best
+
+
 def recommend_top_clusters(store_id: int, n: int = 3) -> list[dict]:
     """
     특정 가게(store_id)와 도보권 안에 있으면서 MBTI 벡터가 가장 유사한 상권 클러스터 Top N을 반환한다.

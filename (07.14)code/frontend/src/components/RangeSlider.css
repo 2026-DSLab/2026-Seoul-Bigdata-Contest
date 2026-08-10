@@ -1,5 +1,5 @@
 .rangeslider {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .rangeslider-labels {
@@ -8,34 +8,95 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.rangeslider-track-wrap {
+  position: relative;
+  padding-top: 28px;
+}
+
+.rangeslider-bubble {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-float);
+  pointer-events: none;
+  animation: rangeslider-pop 0.12s ease;
+}
+
+.rangeslider-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--color-primary);
+}
+
+@keyframes rangeslider-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .rangeslider input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
+  display: block;
   width: 100%;
-  height: 6px;
+  height: 8px;
   border-radius: var(--radius-pill);
   outline: none;
 }
 
 .rangeslider input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
-  cursor: pointer;
+  background: #fff;
+  border: 5px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.rangeslider input[type="range"].dragging::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5);
+  cursor: grabbing;
 }
 
 .rangeslider input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: none;
+  width: 26px;
+  height: 26px;
+  border: 5px solid var(--color-primary);
   border-radius: 50%;
-  background: var(--color-primary);
-  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.rangeslider input[type="range"].dragging::-moz-range-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5);
+  cursor: grabbing;
 }
 
 .rangeslider-values {
@@ -43,5 +104,5 @@
   justify-content: space-between;
   font-size: 11px;
   color: var(--color-text-faint);
-  margin-top: 4px;
+  margin-top: 6px;
 }

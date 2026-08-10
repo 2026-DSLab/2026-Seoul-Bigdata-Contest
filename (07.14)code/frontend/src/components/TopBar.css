@@ -59,26 +59,3 @@
   align-items: center;
   justify-content: center;
 }
-
-.topbar-search {
-  margin-top: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-primary-soft);
-  border-radius: var(--radius-pill);
-  padding: 12px 16px;
-}
-
-.topbar-search input {
-  border: none;
-  outline: none;
-  flex: 1;
-  font-size: 14px;
-  background: transparent;
-}
-
-.topbar-search span {
-  color: var(--color-text-faint);
-}

@@ -1,13 +1,8 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import logoFull from "../assets/logo-full.png";
 import "./TopBar.css";
 
-interface TopBarProps {
-  onSearch?: (value: string) => void;
-  showSearch?: boolean;
-}
-
-export function TopBar({ onSearch, showSearch = true }: TopBarProps) {
+export function TopBar() {
   return (
     <div className="topbar">
       <div className="topbar-row">
@@ -24,15 +19,6 @@ export function TopBar({ onSearch, showSearch = true }: TopBarProps) {
           </button>
         </div>
       </div>
-      {showSearch && (
-        <div className="topbar-search">
-          <input
-            placeholder="찾으시는 상권명을 입력하세요"
-            onChange={(e) => onSearch?.(e.target.value)}
-          />
-          <Search size={16} strokeWidth={2} color="var(--color-text-faint)" />
-        </div>
-      )}
     </div>
   );
 }

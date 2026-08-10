@@ -141,7 +141,13 @@ def _build_fake_data(profile: tuple, lat: float, lng: float, 동: str) -> dict:
     }
 
 
-def seed():
+def seed(force: bool = False):
+    existing = db.count_seed_stores()
+    if existing > 0 and not force:
+        print(f"이미 시드 데이터가 {existing}건 존재합니다 — 중복 삽입을 막기 위해 건너뜁니다.")
+        print("정말 다시 심고 싶다면: python seed_demo_data.py --force")
+        return
+
     inserted = 0
     for group, (center_lat, center_lng), 동, jitter_radius in _PLACEMENTS:
         for profile in group:
@@ -161,4 +167,4 @@ def seed():
 
 
 if __name__ == "__main__":
-    seed()
+    seed(force="--force" in sys.argv)
